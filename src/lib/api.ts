@@ -106,7 +106,7 @@ export interface ApiError {
   detail: string | Array<{ loc: string[]; msg: string; type: string }>;
 }
 
-const API_BASE_URL = 'http://4.222.216.225:8000';
+const API_BASE_URL = 'http://localhost:8000';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
