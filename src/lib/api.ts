@@ -9,7 +9,7 @@ export interface DashboardStats {
   patients_trend: number;
   households_trend: number;
   visits_trend: number;
-  risk_distribution?: { // Make this optional
+  risk_distribution?: {
     Low: number;
     Medium: number;
     High: number;
@@ -42,10 +42,10 @@ export interface Patient {
 export interface Visit {
   _id: string;
   patient_id: string;
-  household_id?: string; // Add this as optional
+  household_id?: string;
   patient_name?: string;
   visit_date: string;
-  visit_type?: string; // Also make this optional since it's used in the form
+  visit_type?: string;
   blood_pressure?: string;
   temperature?: string;
   heart_rate?: string;
@@ -106,7 +106,8 @@ export interface ApiError {
   detail: string | Array<{ loc: string[]; msg: string; type: string }>;
 }
 
-const API_BASE_URL = 'http://localhost:8000';
+// FIXED: Remove /api from base URL since endpoints already include it
+const API_BASE_URL = 'http://4.222.216.225:8000/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -147,7 +148,6 @@ export const getErrorMessage = (error: any): string => {
     if (typeof detail === 'string') {
       return detail;
     } else if (Array.isArray(detail)) {
-      // Handle validation errors array
       return detail.map(err => `${err.loc.join('.')}: ${err.msg}`).join(', ');
     }
   }
@@ -156,100 +156,97 @@ export const getErrorMessage = (error: any): string => {
 
 export const api = {
   // Health check
-  health: () => apiClient.get('/api/health'),
+  health: () => apiClient.get('/health'),
 
-  // Auth
+  // Auth - FIXED: Use request body instead of query params
   login: (email: string, password: string) => 
-    apiClient.post('/api/users/login', null, { 
-      params: { email, password }
-    }),
+    apiClient.post('/users/login', { email, password }),
   
-  register: (data: any) => 
-    apiClient.post('/api/users/register', data),
+  register: (data: { name: string; email: string; password: string; role?: string }) => 
+    apiClient.post('/users/register', data),
 
   // Users
   getUsers: () => 
-    apiClient.get('/api/users'),
+    apiClient.get('/users'),
   
   updateUser: (id: string, data: any) =>
-    apiClient.put(`/api/users/${id}`, data),
+    apiClient.put(`/users/${id}`, data),
 
   deleteUser: (id: string) =>
-    apiClient.delete(`/api/users/${id}`),
+    apiClient.delete(`/users/${id}`),
 
   // Dashboard
-  getDashboardStats: () => apiClient.get('/api/analytics/dashboard'),
-  getRecentActivity: () => apiClient.get('/api/analytics/recent-activity'),
+  getDashboardStats: () => apiClient.get('/analytics/dashboard'),
+  getRecentActivity: () => apiClient.get('/analytics/recent-activity'),
 
   // Households
   getHouseholds: (params?: any) => 
-    apiClient.get('/api/households', { params }),
+    apiClient.get('/households', { params }),
 
   createHousehold: (data: any) => 
-    apiClient.post('/api/households', data),
+    apiClient.post('/households', data),
 
   getHousehold: (id: string) => 
-    apiClient.get(`/api/households/${id}`),
+    apiClient.get(`/households/${id}`),
 
   updateHousehold: (id: string, data: any) => 
-    apiClient.put(`/api/households/${id}`, data),
+    apiClient.put(`/households/${id}`, data),
 
   deleteHousehold: (id: string) => 
-    apiClient.delete(`/api/households/${id}`),
+    apiClient.delete(`/households/${id}`),
 
   searchHouseholds: (query: string) => 
-    apiClient.get('/api/households/search', { params: { q: query } }),
+    apiClient.get('/households/search', { params: { q: query } }),
 
   getHouseholdStatistics: () => 
-    apiClient.get('/api/households/statistics'),
+    apiClient.get('/households/statistics'),
 
   // Patients
   getPatients: (params?: any) => 
-    apiClient.get('/api/patients', { params }),
+    apiClient.get('/patients', { params }),
 
   createPatient: (data: any) => 
-    apiClient.post('/api/patients', data),
+    apiClient.post('/patients', data),
 
   getPatient: (id: string) => 
-    apiClient.get(`/api/patients/${id}`),
+    apiClient.get(`/patients/${id}`),
 
   updatePatient: (id: string, data: any) => 
-    apiClient.put(`/api/patients/${id}`, data),
+    apiClient.put(`/patients/${id}`, data),
 
   deletePatient: (id: string) => 
-    apiClient.delete(`/api/patients/${id}`),
+    apiClient.delete(`/patients/${id}`),
 
   importPatientsCSV: (data: FormData) => 
-    apiClient.post('/api/patients/import-csv', data, {
+    apiClient.post('/patients/import-csv', data, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
 
   downloadCSVTemplate: () => 
-    apiClient.get('/api/patients/csv-template', { responseType: 'blob' }),
+    apiClient.get('/patients/csv-template', { responseType: 'blob' }),
 
   // Visits
   getVisits: (params?: any) => 
-    apiClient.get('/api/visits', { params }),
+    apiClient.get('/visits', { params }),
 
   createVisit: (data: any) => 
-    apiClient.post('/api/visits', data),
+    apiClient.post('/visits', data),
 
-  // ADD THE MISSING updateVisit METHOD
   updateVisit: (id: string, data: any) => 
-    apiClient.put(`/api/visits/${id}`, data),
+    apiClient.put(`/visits/${id}`, data),
 
   getVisit: (id: string) => 
-    apiClient.get(`/api/visits/${id}`),
+    apiClient.get(`/visits/${id}`),
 
   deleteVisit: (id: string) => 
-    apiClient.delete(`/api/visits/${id}`),
+    apiClient.delete(`/visits/${id}`),
 
   // AI
   getAIHealthRecommendation: (data: any) => 
-    apiClient.post('/api/ai/health-recommendation', data),
+    apiClient.post('/ai/health-recommendation', data),
 
   getAIStatus: () => 
-    apiClient.get('/api/ai/status'),
+    apiClient.get('/ai/status'),
 };
 
 export const generateMockActivities = (): RecentActivity[] => {
@@ -260,7 +257,7 @@ export const generateMockActivities = (): RecentActivity[] => {
       description: 'New patient registered',
       user: 'Dr. Sarah Johnson',
       user_id: 'user1',
-      timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
       metadata: {
         patient_name: 'John Kamau',
         patient_id: 'patient123'
@@ -272,7 +269,7 @@ export const generateMockActivities = (): RecentActivity[] => {
       description: 'Medical visit recorded',
       user: 'Nurse Mary Wanjiku',
       user_id: 'user2',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
       metadata: {
         patient_name: 'Jane Wambui',
         visit_type: 'Routine Checkup'
@@ -284,7 +281,7 @@ export const generateMockActivities = (): RecentActivity[] => {
       description: 'New household registered',
       user: 'CHW Peter Omondi',
       user_id: 'user3',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
       metadata: {
         household_code: 'HH-015',
         household_id: 'household123'
@@ -296,7 +293,7 @@ export const generateMockActivities = (): RecentActivity[] => {
       description: 'Patient information updated',
       user: 'Dr. Sarah Johnson',
       user_id: 'user1',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), // 4 hours ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
       metadata: {
         patient_name: 'Michael Otieno',
         patient_id: 'patient456'
@@ -308,7 +305,7 @@ export const generateMockActivities = (): RecentActivity[] => {
       description: 'Emergency visit recorded',
       user: 'Dr. Sarah Johnson',
       user_id: 'user1',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(), // 6 hours ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
       metadata: {
         patient_name: 'Grace Achieng',
         visit_type: 'Emergency'
@@ -320,7 +317,7 @@ export const generateMockActivities = (): RecentActivity[] => {
       description: 'User logged into system',
       user: 'Admin User',
       user_id: 'admin1',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(), // 8 hours ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
     },
     {
       _id: '7',
@@ -328,13 +325,12 @@ export const generateMockActivities = (): RecentActivity[] => {
       description: 'Data export completed',
       user: 'Dr. Sarah Johnson',
       user_id: 'user1',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(), // 12 hours ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
     }
   ];
   return activities;
 };
 
-// Add this function to your api.ts file
 export const getFallbackHealthRecommendation = (patientData: any) => {
   const conditions = patientData.medical_condition?.toLowerCase() || '';
   const riskLevel = patientData.risk_level || 'Low';
